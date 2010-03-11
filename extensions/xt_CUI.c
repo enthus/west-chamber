@@ -158,7 +158,7 @@ static void __exit cui_tg_exit(void)
 module_init(cui_tg_init);
 module_exit(cui_tg_exit);
 MODULE_DESCRIPTION("Xtables: Cui Yingying");
-MODULE_AUTHOR("Jan Engelhardt <jengelh@medozas.de>; "
-              "Klzgrad <klzgrad@gmail.com>");
+MODULE_AUTHOR("Jan Engelhardt <jengelh@medozas.de>");
+MODULE_AUTHOR("Klzgrad <klzgrad@gmail.com>");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("ipt_CUI");

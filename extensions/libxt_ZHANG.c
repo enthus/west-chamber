@@ -9,9 +9,7 @@
  *	version 2 of the License, or any later version, as published by the
  *	Free Software Foundation.
  */
-#include <getopt.h>
 #include <stdio.h>
-#include <string.h>
 
 #include <xtables.h>
 #include <linux/netfilter/x_tables.h>
@@ -27,20 +25,13 @@ static int zhang_tg_parse(int c, char **argv, int invert, unsigned int *flags,
 	return 0;
 }
 
-static void zhang_tg_check(unsigned int flags)
-{
-}
-
 static struct xtables_target zhang_tg_reg = {
 	.version       = XTABLES_VERSION,
 	.name          = "ZHANG",
 	.revision      = 0,
-	.family        = AF_INET,
-	.size          = XT_ALIGN(0),
-	.userspacesize = XT_ALIGN(0),
+	.family        = PF_INET,
 	.help          = zhang_tg_help,
 	.parse         = zhang_tg_parse,
-	.final_check   = zhang_tg_check,
 };
 
 static __attribute__((constructor)) void zhang_tg_ldr(void)

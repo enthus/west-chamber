@@ -204,7 +204,7 @@ static void __exit zhang_tg_exit(void)
 module_init(zhang_tg_init);
 module_exit(zhang_tg_exit);
 MODULE_DESCRIPTION("Xtables: Scholar Zhang");
-MODULE_AUTHOR("Jan Engelhardt <jengelh@medozas.de>; "
-              "Klzgrad <klzgrad@gmail.com>");
+MODULE_AUTHOR("Jan Engelhardt <jengelh@medozas.de>");
+MODULE_AUTHOR("Klzgrad <klzgrad@gmail.com>");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("ipt_ZHANG");
