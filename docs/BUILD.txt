@@ -1,4 +1,0 @@
-
-Tools required:
-libnet-devel
-libpcap-devel
