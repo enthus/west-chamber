@@ -11,12 +11,13 @@
 #define _DATE "Sep 2 2009"
 #define _COPYING "Copyright (c) 2009, Yingying Cui. License: BSD."
 
+#define DLT_LINUX_SLL   113
+
 pcap_t* pd;
 int linktype;
-guint linkoffset;
-
-gboolean cfg_debug = FALSE;
 char* cfg_interface = NULL;
+guint linkoffset;
+gboolean cfg_debug = FALSE;
 
 GOptionEntry gopts[] = {
 	{"debug", 'd', 0, G_OPTION_ARG_NONE, &cfg_debug, 
@@ -26,9 +27,10 @@ GOptionEntry gopts[] = {
 	{NULL, 0, 0, 0, NULL, NULL, NULL}
 };
 
-void handler(u_char* _, const struct pcap_pkthdr *hdr, const u_char* data){
+void handler(u_char* _, const struct pcap_pkthdr *hdr, const u_char* data)
+{
 	(void)_;
-	switch(linktype){
+	switch(linktype) {
 		case DLT_EN10MB:
 			if (hdr->caplen < 14)
 				return;
@@ -44,14 +46,11 @@ void handler(u_char* _, const struct pcap_pkthdr *hdr, const u_char* data){
 	if (hdr->caplen < linkoffset)
 		return;
 
-	/* FIXME - different alignment padding on some platform 
-	
-	...
-	*/
+	/* FIXME - different alignment padding on some platform */
 	
 	/* NB: use pcap_sendpacket() instead of libnet_write()
-	for faster packet injection
-	*/
+	 * for faster packet injection
+	 */
 	guchar* a = g_alloca(hdr->caplen);
 	memcpy(a, data, hdr->caplen);
 	guchar* data_aligned = a + linkoffset;
@@ -67,19 +66,19 @@ void handler(u_char* _, const struct pcap_pkthdr *hdr, const u_char* data){
 	l.injection_type = LIBNET_LINK;
 
 	/* syn increases seq by one, so consequent 
-	packets with seq == syn's should be ignored
-	But windows requires this. why?
-	*/
+	 * packets with seq == syn's should be ignored
+	 * But windows requires this. why?
+	 */
 	tcph->th_seq = htonl(ntohl(tcph->th_seq) - 1);
 
-	//send an rst with bad seq
+	/* send an rst with bad seq */
 	tcph->th_flags = TH_RST;
 	if(libnet_do_checksum(&l, (void*)iph, IPPROTO_TCP, tcp_len) == -1)
 		g_warning("libnet_do_checksum: %s", l.err_buf);
 	if(pcap_sendpacket(pd, a, hdr->caplen) == -1)
 		g_debug("pcap_sendpacket: %s", pcap_geterr(pd));
 
-	//send an ack with correct seq but bad ack
+	/* send an ack with correct seq but bad ack */
 	tcph->th_seq = htonl(ntohl(tcph->th_seq) + 2);
 	tcph->th_flags = TH_ACK;
 	if(libnet_do_checksum(&l, (void*)iph, IPPROTO_TCP, tcp_len) == -1)
@@ -90,32 +89,41 @@ void handler(u_char* _, const struct pcap_pkthdr *hdr, const u_char* data){
 	g_debug("injected %d>%d", ntohs(tcph->th_sport), ntohs(tcph->th_dport));
 }
 
-void quiet(const gchar* a, GLogLevelFlags b, const gchar* c, gpointer d){
+void quiet(const gchar* a, GLogLevelFlags b, const gchar* c, gpointer d)
+{
         (void)a; (void)b; (void)c; (void)d;
 }
 
-int main(int argc, char** argv){
-	GError* gerr;
-	/* options */
-	GOptionContext* context = g_option_context_new(NULL);
-	//g_option_context_set_summary(context, _DESCR);
-	g_option_context_add_main_entries(context, gopts, NULL);
-	if(!g_option_context_parse(context, &argc, &argv, &gerr))
-		g_error("g_option_context_parse: %s", gerr->message);
-	g_option_context_free(context);
-	
-	if(!cfg_debug)
-		g_log_set_handler(NULL, G_LOG_LEVEL_DEBUG | G_LOG_FLAG_FATAL
- 						| G_LOG_FLAG_RECURSION, quiet, NULL);
-
+int main(int argc, char** argv)
+{
 	char errbuf[PCAP_ERRBUF_SIZE];
 	struct bpf_program fp;
 	char filter_exp[] = "tcp and (tcp[tcpflags] = tcp-syn)";
+
+	GError* gerr;
+	/* options */
+	GOptionContext* context = g_option_context_new(NULL);
+
+	/* g_option_context_set_summary(context, _DESCR); */
+	g_option_context_add_main_entries(context, gopts, NULL);
+
+	if(!g_option_context_parse(context, &argc, &argv, &gerr))
+		g_error("g_option_context_parse: %s", gerr->message);
+
+	g_option_context_free(context);
+	
+	if(!cfg_debug) {
+		g_log_set_handler(NULL, G_LOG_LEVEL_DEBUG | G_LOG_FLAG_FATAL
+ 					| G_LOG_FLAG_RECURSION, quiet, NULL);
+	}
+
 	/* start listening */
+
 	if(cfg_interface == NULL)
 		cfg_interface = pcap_lookupdev(errbuf);
 	if(cfg_interface == NULL)
 		g_error("interface not found");
+
 	g_debug("Using interface %s", cfg_interface);
 
 	pd = pcap_open_live(cfg_interface, BUFSIZ, 0, 1000, errbuf);
@@ -130,7 +138,7 @@ int main(int argc, char** argv){
 		g_error("pcap_setfilter(%s): %s", filter_exp, pcap_geterr(pd));
 
 	linktype = pcap_datalink(pd);
-	switch(linktype){
+	switch(linktype) {
 #ifdef DLT_NULL
 		case DLT_NULL:
 			linkoffset = 4;
@@ -147,7 +155,6 @@ int main(int argc, char** argv){
 		case DLT_SLIP:
 			linkoffset = 0;
 			break;
-#define DLT_LINUX_SLL   113
 		case DLT_LINUX_SLL:
 			linkoffset = 16;
 			break;
@@ -156,6 +163,7 @@ int main(int argc, char** argv){
 			linkoffset = 21;
 			break;
 #endif		
+
 #ifdef DLT_PPP_SERIAL 
 		case DLT_PPP_SERIAL:
 			linkoffset = 4;
@@ -169,8 +177,10 @@ int main(int argc, char** argv){
 		g_critical("pcap_loop: %s", pcap_geterr(pd));
 		return 1;
 	}
-	else
+	else {
 		g_debug("Interupted, quit now.");
+	}
 
 	return 0;
 }
+
